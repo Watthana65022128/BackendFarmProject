@@ -1,0 +1,30 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Farm {
+  id         Int      @id @default(autoincrement())
+  name       String
+  startMonth String
+  endMonth   String
+  createAt   DateTime @default(now())
+  updateAt   DateTime @updatedAt
+
+  @@map("farms")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  age       Int
+  address   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt()
+}
