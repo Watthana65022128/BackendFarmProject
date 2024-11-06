@@ -17,7 +17,6 @@ exports.createFarm = async (req, res) => {
             return res.status(400).json({ message: 'เดือนไม่ถูกต้อง' });
         }
 
-        // สร้างข้อมูลใหม่พร้อมทั้งเพิ่ม timestamp
         const newFarm = await prisma.farm.create({
             data: {
                 name: name.trim(),
@@ -28,7 +27,6 @@ exports.createFarm = async (req, res) => {
             }
         });
 
-        // ส่งข้อมูลกลับพร้อม message
         res.status(201).json({
             message: 'สร้างไร่สำเร็จ',
             data: newFarm
