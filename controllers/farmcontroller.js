@@ -22,8 +22,7 @@ exports.createFarm = async (req, res) => {
                 name: name.trim(),
                 startMonth,
                 endMonth,
-                createAt: new Date(),
-                updateAt: new Date()
+                createAt: new Date()
             }
         });
 
@@ -43,7 +42,7 @@ exports.createFarm = async (req, res) => {
     }
 };
 
-exports.getFarm = async (req, res) => {
+exports.getFarms = async (req, res) => {
     try {
         const farms = await prisma.farm.findMany({
             orderBy: {
@@ -52,7 +51,7 @@ exports.getFarm = async (req, res) => {
         }); 
         
         if (farms.length === 0) {
-            return res.status(404).json({ message: 'No farms found' });
+            return res.status(404).json({ message: 'ไม่มีฟาร์ม' });
         }
 
         res.status(200).json(farms); 
@@ -66,35 +65,51 @@ exports.getFarm = async (req, res) => {
 };
 
 
-exports.listFarm = async (req, res) => {
+exports.getFarmId = async (req, res) => {
     try {
         const { id } = req.params;
         
+        // ตรวจสอบ ID
         if (!id || isNaN(id)) {
-            return res.status(400).json({ 
-                error: 'รูปแบบ ID ไม่ถูกต้อง' 
+            return res.status(400).json({
+                success: false,
+                error: 'รูปแบบ ID ไม่ถูกต้อง'
             });
         }
-
+        
+        // ค้นหาข้อมูลฟาร์ม
         const farm = await prisma.farm.findUnique({
             where: {
                 id: Number(id)
+            },
+            // เพิ่ม select เพื่อระบุ fields ที่ต้องการ
+            select: {
+                id: true,
+                name: true,
+                startMonth: true,
+                endMonth: true,
             }
         });
-
+        
+        // ถ้าไม่พบข้อมูล
         if (!farm) {
-            return res.status(404).json({ 
-                error: 'ไม่พบข้อมูลในฟาร์ม' 
+            return res.status(404).json({
+                success: false,
+                error: 'ไม่พบข้อมูลในฟาร์ม'
             });
         }
-
-        return res.status(200).json(farm);
-
+        
+        return res.status(200).json({
+            success: true,
+            data: farm
+        });
+        
     } catch (error) {
         console.error('Error:', error);
-        return res.status(500).json({ 
+        return res.status(500).json({
+            success: false,
             error: 'Server Error',
-            message: error.message 
+            message: error.message
         });
     }
 };
@@ -118,6 +133,30 @@ exports.removeFarm = async (req, res) => {
 
         return res.status(200).json({
             message: 'ลบข้อมูลไร่เรียบร้อยแล้ว'
+        });
+    } catch (error) {
+        console.error('Error:', error);
+        return res.status(500).json({
+            error: 'Server Error',
+            message: error.message
+        });
+    }
+};
+
+exports.deleteFarmAll = async (req, res) => {
+    try {
+        
+        const result = await prisma.farm.deleteMany();
+
+        if (result.count === 0) {
+            return res.status(404).json({
+                message: 'ไม่มีฟาร์มให้ลบ'
+            });
+        }
+
+        return res.status(200).json({
+            message: 'ลบฟาร์มทั้งหมดเรียบร้อยแล้ว',
+            deletedCount: result.count 
         });
     } catch (error) {
         console.error('Error:', error);

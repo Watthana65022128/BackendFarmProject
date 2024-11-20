@@ -9,7 +9,6 @@ app.use(morgan('dev'))
 app.use(bodyParser.json())
 app.use(cors())
 
-
 readdirSync('./routers')
 .map((item)=> app.use('/api', require('./routers/'+ item)))
 
