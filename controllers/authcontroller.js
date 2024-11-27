@@ -2,73 +2,21 @@ const prisma = require('../prisma/prisma')
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 
-exports.updateUser = async (req, res) => {
+exports.getUserProfile = async (req, res) => {
     try {
-        const { id } = req.params;
-        const { username, email, password, age, address } = req.body;
+        const userId = req.userId; // ดึง userId จาก request ที่ได้จาก middleware
 
-        if (!id) {
+        if (!userId) {
             return res.status(400).json({
-                error: 'โปรดระบุ id ของผู้ใช้'
+                error: 'ไม่พบ userId ใน request'
             });
         }
 
-        const existingUser = await prisma.user.findUnique({
-            where: { id: Number(id) }
-        });
-
-        if (!existingUser) {
-            return res.status(404).json({
-                error: 'ไม่พบผู้ใช้'
-            });
-        }
-
-        const updatedData = {};
-        if (username) updatedData.username = username;
-        if (email) updatedData.email = email;
-        if (age) updatedData.age = age;
-        if (address) updatedData.address = address;
-
-        if (password) {
-            const salt = await bcrypt.genSalt(10);
-            updatedData.password = await bcrypt.hash(password, salt);
-        }
-
-        const updatedUser = await prisma.user.update({
-            where: { id: Number(id) },
-            data: updatedData
-        });
-
-        const { password: _, ...userData } = updatedUser;
-
-        res.status(200).json({
-            message: 'อัปเดตข้อมูลผู้ใช้สำเร็จ',
-            user: userData
-        });
-    } catch (err) {
-        console.log(err);
-        res.status(500).json({
-            error: 'เกิดข้อผิดพลาดในการอัปเดตข้อมูลผู้ใช้'
-        });
-    }
-};
-
-
-exports.getUserId = async (req, res) => {
-    try {
-
-        const { id, username } = req.params;
-
-        if (!id && !username) {
-            return res.status(400).json({
-                error: 'โปรดระบุ id หรือ username'
-            });
-        }
-
-        const user = await prisma.user.findFirst({
-            where: id 
-                ? { id: Number(id) } 
-                : { username }
+        // ค้นหาผู้ใช้จากฐานข้อมูลโดยใช้ userId
+        const user = await prisma.user.findUnique({
+            where: {
+                id: userId
+            }
         });
 
         if (!user) {
@@ -77,15 +25,49 @@ exports.getUserId = async (req, res) => {
             });
         }
 
+        // ส่งข้อมูลผู้ใช้กลับ (ไม่รวมรหัสผ่าน)
         const { password: _, ...userData } = user;
 
-        res.status(200).json({
+        return res.status(200).json({
+            message: 'ดึงข้อมูลโปรไฟล์สำเร็จ',
             user: userData
+        });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({
+            error: 'ไม่สามารถดึงข้อมูลโปรไฟล์ได้'
+        });
+    }
+};
+
+exports.getAllUsers = async (req, res) => {
+    try {
+        const users = await prisma.user.findMany({
+            select: {
+                id: true,
+                username: true,
+                email: true,
+                age: true,
+                address: true,
+                createdAt: true, 
+                updatedAt: true  
+            }
+        });
+
+        if (users.length === 0) {
+            return res.status(404).json({
+                error: 'ไม่พบผู้ใช้ในระบบ'
+            });
+        }
+
+        res.status(200).json({
+            message: 'ดึงข้อมูลผู้ใช้ทั้งหมดสำเร็จ',
+            users
         });
     } catch (err) {
         console.log(err);
         res.status(500).json({
-            error: 'เกิดข้อผิดพลาดในการดึงข้อมูลผู้ใช้'
+            error: 'เกิดข้อผิดพลาดในการดึงข้อมูลผู้ใช้ทั้งหมด'
         });
     }
 };
@@ -187,3 +169,54 @@ exports.login = async (req, res) => {
         })
     }
 }
+
+exports.updateUser = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { username, email, password, age, address } = req.body;
+
+        if (!id) {
+            return res.status(400).json({
+                error: 'โปรดระบุ id ของผู้ใช้'
+            });
+        }
+
+        const existingUser = await prisma.user.findUnique({
+            where: { id: Number(id) }
+        });
+
+        if (!existingUser) {
+            return res.status(404).json({
+                error: 'ไม่พบผู้ใช้'
+            });
+        }
+
+        const updatedData = {};
+        if (username) updatedData.username = username;
+        if (email) updatedData.email = email;
+        if (age) updatedData.age = age;
+        if (address) updatedData.address = address;
+
+        if (password) {
+            const salt = await bcrypt.genSalt(10);
+            updatedData.password = await bcrypt.hash(password, salt);
+        }
+
+        const updatedUser = await prisma.user.update({
+            where: { id: Number(id) },
+            data: updatedData
+        });
+
+        const { password: _, ...userData } = updatedUser;
+
+        res.status(200).json({
+            message: 'อัปเดตข้อมูลผู้ใช้สำเร็จ',
+            user: userData
+        });
+    } catch (err) {
+        console.log(err);
+        res.status(500).json({
+            error: 'เกิดข้อผิดพลาดในการอัปเดตข้อมูลผู้ใช้'
+        });
+    }
+};

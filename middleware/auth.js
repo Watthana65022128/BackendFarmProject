@@ -1,3 +1,26 @@
+const jwt = require('jsonwebtoken');
+
+exports.verifyToken = (req, res, next) => {
+    const token = req.headers.authorization?.split(' ')[1]; // ตัวอย่าง: "Bearer <JWT_TOKEN>"
+
+    if (!token) {
+        return res.status(401).json({
+            error: 'ต้องมี Authorization token'
+        });
+    }
+
+    // ตรวจสอบ token และ decode
+    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+        if (err) {
+            return res.status(403).json({
+                error: 'Token ไม่ถูกต้องหรือหมดอายุ'
+            });
+        }
+        req.userId = decoded.id; // เก็บ userId จาก token ใน request
+        next(); 
+    });
+};
+
 exports.validateRegister = (req, res, next) => {
     const { username, email, password, age, address } = req.body
 
