@@ -5,7 +5,6 @@ const { createFarm, getFarms, getFarmId, removeFarm, } = require('../controllers
 const {  verifyToken } = require('../middleware/auth')  
 
 router.get('/farms/', verifyToken, getFarms)
-router.get('/farm/:id', getFarmId)
 router.post('/farm/', verifyToken, createFarm)
 router.delete('/farm/:id', verifyToken, removeFarm)
 
