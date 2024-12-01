@@ -15,6 +15,9 @@ model Farm {
   createAt   DateTime @default(now())
   updateAt   DateTime @updatedAt
 
+  userId     Int      // Foreign key to User
+  user       User @relation(fields: [userId], references: [id])
+
   @@map("farms")
 }
 
@@ -27,4 +30,7 @@ model User {
   address   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt()
+
+  farms     Farm[]
+
 }

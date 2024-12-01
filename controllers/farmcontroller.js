@@ -17,12 +17,23 @@ exports.createFarm = async (req, res) => {
             return res.status(400).json({ message: 'เดือนไม่ถูกต้อง' });
         }
 
+        const userId = req.userId; //  userId มาจากการ login (หรือ JWT token)
+
+        if (!userId) {
+            return res.status(400).json({ message: 'ผู้ใช้ไม่ถูกต้อง' });
+        }
+
         const newFarm = await prisma.farm.create({
             data: {
                 name: name.trim(),
                 startMonth,
                 endMonth,
-                createAt: new Date()
+                createAt: new Date(), 
+                user: {
+                    connect: {
+                        id: userId // เชื่อมกับ user.id จาก JWT token
+                    }
+                }
             }
         });
 
@@ -44,17 +55,69 @@ exports.createFarm = async (req, res) => {
 
 exports.getFarms = async (req, res) => {
     try {
-        const farms = await prisma.farm.findMany({
-            orderBy: {
-                createAt: 'desc'
-            }
-        }); 
-        
-        if (farms.length === 0) {
-            return res.status(404).json({ message: 'ไม่มีฟาร์ม' });
+        const userId = req.userId; // ตรวจสอบว่ามี userId จาก JWT token
+
+        if (!userId) {
+            return res.status(401).json({ message: 'ไม่พบข้อมูลผู้ใช้' });
         }
 
-        res.status(200).json(farms); 
+        const farms = await prisma.farm.findMany({
+            where: {
+                userId: userId // กรองเฉพาะไร่ของผู้ใช้ที่ล็อกอินอยู่
+            },
+        });
+
+        res.json(farms);
+    } catch (error) {
+        console.error('Error fetching farms:', error);
+        res.status(500).json({
+            message: 'เกิดข้อผิดพลาดในการดึงข้อมูลไร่',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+};
+
+
+exports.removeFarm = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.userId; // userId มาจาก JWT token
+
+        if (!userId) {
+            return res.status(401).json({ message: 'ไม่พบข้อมูลผู้ใช้' });
+        }
+
+        if (!id || isNaN(id)) {
+            return res.status(400).json({
+                error: 'รูปแบบ ID ไม่ถูกต้อง'
+            });
+        }
+
+        // ตรวจสอบว่าไร่ที่ต้องการลบเป็นของผู้ใช้คนเดียวกัน
+        const farm = await prisma.farm.findUnique({
+            where: {
+                id: Number(id)
+            }
+        });
+
+        if (!farm) {
+            return res.status(404).json({ message: 'ไม่พบข้อมูลไร่ที่ต้องการลบ' });
+        }
+
+        if (farm.userId !== userId) {
+            return res.status(403).json({ message: 'คุณไม่สามารถลบไร่ของผู้ใช้อื่นได้' });
+        }
+
+        // ลบฟาร์ม
+        await prisma.farm.delete({
+            where: {
+                id: Number(id)
+            }
+        });
+
+        return res.status(200).json({
+            message: 'ลบข้อมูลไร่เรียบร้อยแล้ว'
+        });
     } catch (error) {
         console.error('Error:', error);
         return res.status(500).json({
@@ -114,55 +177,3 @@ exports.getFarmId = async (req, res) => {
     }
 };
 
-
-exports.removeFarm = async (req, res) => {
-    try {
-        const { id } = req.params;
-
-        if (!id || isNaN(id)) {
-            return res.status(400).json({
-                error: 'รูปแบบ ID ไม่ถูกต้อง'
-            });
-        }
-
-        await prisma.farm.delete({
-            where: {
-                id: Number(id)
-            }
-        });
-
-        return res.status(200).json({
-            message: 'ลบข้อมูลไร่เรียบร้อยแล้ว'
-        });
-    } catch (error) {
-        console.error('Error:', error);
-        return res.status(500).json({
-            error: 'Server Error',
-            message: error.message
-        });
-    }
-};
-
-exports.deleteFarmAll = async (req, res) => {
-    try {
-        
-        const result = await prisma.farm.deleteMany();
-
-        if (result.count === 0) {
-            return res.status(404).json({
-                message: 'ไม่มีฟาร์มให้ลบ'
-            });
-        }
-
-        return res.status(200).json({
-            message: 'ลบฟาร์มทั้งหมดเรียบร้อยแล้ว',
-            deletedCount: result.count 
-        });
-    } catch (error) {
-        console.error('Error:', error);
-        return res.status(500).json({
-            error: 'Server Error',
-            message: error.message
-        });
-    }
-};

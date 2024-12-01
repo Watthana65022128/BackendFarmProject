@@ -12,7 +12,6 @@ exports.getUserProfile = async (req, res) => {
             });
         }
 
-        // ค้นหาผู้ใช้จากฐานข้อมูลโดยใช้ userId
         const user = await prisma.user.findUnique({
             where: {
                 id: userId
@@ -25,7 +24,6 @@ exports.getUserProfile = async (req, res) => {
             });
         }
 
-        // ส่งข้อมูลผู้ใช้กลับ (ไม่รวมรหัสผ่าน)
         const { password: _, ...userData } = user;
 
         return res.status(200).json({
@@ -170,19 +168,20 @@ exports.login = async (req, res) => {
     }
 }
 
-exports.updateUser = async (req, res) => {
+exports.updateUserProfile = async (req, res) => {
     try {
-        const { id } = req.params;
-        const { username, email, password, age, address } = req.body;
+        const userId = req.userId;  // ดึง userId จาก token ที่ได้จาก middleware
 
-        if (!id) {
+        if (!userId) {
             return res.status(400).json({
-                error: 'โปรดระบุ id ของผู้ใช้'
+                error: 'ไม่พบ userId ใน request'
             });
         }
 
+        const { username, email, password, age, address } = req.body;
+
         const existingUser = await prisma.user.findUnique({
-            where: { id: Number(id) }
+            where: { id: userId }
         });
 
         if (!existingUser) {
@@ -193,7 +192,7 @@ exports.updateUser = async (req, res) => {
 
         const updatedData = {};
         if (username) updatedData.username = username;
-        if (email) updatedData.email = email;
+        if (email && email !== existingUser.email) updatedData.email = email;
         if (age) updatedData.age = age;
         if (address) updatedData.address = address;
 
@@ -203,7 +202,7 @@ exports.updateUser = async (req, res) => {
         }
 
         const updatedUser = await prisma.user.update({
-            where: { id: Number(id) },
+            where: { id: userId },
             data: updatedData
         });
 
@@ -220,3 +219,4 @@ exports.updateUser = async (req, res) => {
         });
     }
 };
+
