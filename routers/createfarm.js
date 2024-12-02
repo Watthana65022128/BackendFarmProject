@@ -1,7 +1,7 @@
 const express = require('express')
 const router = express.Router()
 
-const { createFarm, getFarms, getFarmId, removeFarm, } = require('../controllers/farmcontroller')
+const { createFarm, getFarms, removeFarm, } = require('../controllers/farmcontroller')
 const {  verifyToken } = require('../middleware/auth')  
 
 router.get('/farms/', verifyToken, getFarms)
