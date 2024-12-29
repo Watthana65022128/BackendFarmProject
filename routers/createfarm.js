@@ -9,5 +9,4 @@ router.post('/farm/', verifyToken, createFarm)
 router.delete('/farm/:id', verifyToken, removeFarm)
 
 
-
 module.exports = router

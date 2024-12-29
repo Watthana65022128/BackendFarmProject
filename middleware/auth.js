@@ -43,6 +43,30 @@ exports.validateRegister = (req, res, next) => {
         })
     }
 
+    if (!/[a-z]/.test(password)) {
+        return res.status(400).json({
+            error: 'รหัสผ่านต้องมีตัวพิมพ์เล็กอย่างน้อย 1 ตัว'
+        });
+    }
+
+    if (!/[A-Z]/.test(password)) {
+        return res.status(400).json({
+            error: 'รหัสผ่านต้องมีตัวพิมพ์ใหญ่อย่างน้อย 1 ตัว'
+        });
+    }
+
+    if (!/\d/.test(password)) {
+        return res.status(400).json({
+            error: 'รหัสผ่านต้องมีตัวเลขอย่างน้อย 1 ตัว'
+        });
+    }
+
+    if (!/[@$!%*?&_-]/.test(password)) {
+        return res.status(400).json({
+            error: 'รหัสผ่านต้องมีอักขระพิเศษ อย่างน้อย 1 ตัว'
+        });
+    }
+
     if (!age || age < 1 || age > 120) {
         return res.status(400).json({
             error: 'อายุไม่ถูกต้อง'

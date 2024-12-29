@@ -7,7 +7,7 @@ const { readdirSync } = require('fs')
 
 const corsOptions = {
     // เปลี่ยน origin เป็น IP ของเครื่อง frontend
-    origin: ['http://10.50.18.78:3000'], 
+    origin: ['http://192.168.20.49:3000'], 
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }
