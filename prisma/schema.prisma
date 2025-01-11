@@ -53,7 +53,6 @@ model ExpenseCategory {
 
 model Receipt {
   id            Int      @id @default(autoincrement())
-  receiptNumber String
   receiptDate   DateTime
   shopName      String
   totalAmount   Float
@@ -76,7 +75,7 @@ model ReceiptItem {
   description String
   amount      Float
   price       Float
-  unit        String
+  quantity    String
   createdAt   DateTime @default(now())
 
   receiptId Int
