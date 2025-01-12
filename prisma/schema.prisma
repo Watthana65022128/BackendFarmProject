@@ -74,8 +74,6 @@ model ReceiptItem {
   id          Int      @id @default(autoincrement())
   description String
   amount      Float
-  price       Float
-  quantity    String
   createdAt   DateTime @default(now())
 
   receiptId Int
