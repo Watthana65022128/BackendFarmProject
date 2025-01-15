@@ -2,16 +2,87 @@ const prisma = require('../prisma/prisma')
 const { processOCR } = require('../service/ocr.service')
 const fs = require('fs')
 
-exports.createReceipt = async function(req, res) {
+exports.scanReceipt = async function(req, res) {
     try {
         const userId = req.userId
-        const { farmId, defaultCategoryId } = req.body
+        const { farmId } = req.body
         const { path: imagePath } = req.file
 
         // Validation
         if (!farmId) {
             return res.status(400).json({
                 error: 'กรุณาระบุฟาร์ม'
+            })
+        }
+
+        // เช็คว่าฟาร์มมีอยู่จริงและเป็นของ user นี้
+        const farm = await prisma.farm.findFirst({
+            where: {
+                id: parseInt(farmId),
+                userId: parseInt(userId)
+            }
+        })
+
+        if (!farm) {
+            return res.status(404).json({
+                error: 'ไม่พบฟาร์มที่ระบุ'
+            })
+        }
+
+        // ประมวลผล OCR
+        const ocrResult = await processOCR(imagePath)
+
+        // ตรวจสอบผลลัพธ์ OCR
+        if (!ocrResult.items || ocrResult.items.length === 0) {
+            return res.status(400).json({
+                error: 'ไม่สามารถอ่านรายการในใบเสร็จได้'
+            })
+        }
+
+        res.status(200).json({
+            message: 'สแกนใบเสร็จสำเร็จ',
+            imagePath: imagePath,
+            receipt: {
+                ...ocrResult,
+                userId: parseInt(userId),
+                farmId: parseInt(farmId)
+            }
+        })
+
+    } catch (err) {
+        console.log('Error scanning receipt:', err)
+        
+        // ลบไฟล์รูปถ้าเกิด error
+        if (req.file && req.file.path) {
+            fs.unlink(req.file.path, (unlinkErr) => {
+                if (unlinkErr) console.log('Error deleting file:', unlinkErr)
+            })
+        }
+
+        res.status(500).json({
+            error: 'เกิดข้อผิดพลาดในการสแกนใบเสร็จ'
+        })
+    }
+}
+
+// ปรับปรุง createReceipt ให้รับข้อมูลที่แก้ไขแล้ว
+exports.createReceipt = async function(req, res) {
+    try {
+        const userId = req.userId
+        const { 
+            farmId,
+            imagePath,
+            shopName,
+            receiptDate,
+            totalAmount,
+            items,
+            defaultCategoryId 
+        } = req.body
+
+        // Validation
+        if (!farmId || !items || items.length === 0) {
+            return res.status(400).json({
+                error: 'กรุณาระบุข้อมูลให้ครบถ้วน'
             })
         }
 
@@ -44,27 +115,17 @@ exports.createReceipt = async function(req, res) {
             }
         }
 
-        // ประมวลผล OCR
-        const ocrResult = await processOCR(imagePath)
-
-        // ตรวจสอบผลลัพธ์ OCR
-        if (!ocrResult.items || ocrResult.items.length === 0) {
-            return res.status(400).json({
-                error: 'ไม่สามารถอ่านรายการในใบเสร็จได้'
-            })
-        }
-
         // บันทึกลงฐานข้อมูล
         const receipt = await prisma.receipt.create({
             data: {
                 userId: parseInt(userId),
                 farmId: parseInt(farmId),
-                receiptDate: ocrResult.receiptDate,
-                shopName: ocrResult.shopName,
-                totalAmount: ocrResult.totalAmount,
+                receiptDate: new Date(receiptDate),
+                shopName,
+                totalAmount,
                 imageUrl: imagePath,
                 items: {
-                    create: ocrResult.items.map(item => ({
+                    create: items.map(item => ({
                         description: item.description,
                         amount: item.amount,
                         categoryId: item.categoryId || parseInt(defaultCategoryId || 1)
@@ -92,14 +153,6 @@ exports.createReceipt = async function(req, res) {
 
     } catch (err) {
         console.log('Error creating receipt:', err)
-        
-        // ลบไฟล์รูปถ้าเกิด error
-        if (req.file && req.file.path) {
-            fs.unlink(req.file.path, (unlinkErr) => {
-                if (unlinkErr) console.log('Error deleting file:', unlinkErr)
-            })
-        }
-
         res.status(500).json({
             error: 'เกิดข้อผิดพลาดในการสร้างใบเสร็จ'
         })

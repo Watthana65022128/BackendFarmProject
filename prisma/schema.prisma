@@ -29,6 +29,7 @@ model Farm {
   name       String
   startMonth String
   endMonth   String
+  budget     Float?
   createAt   DateTime @default(now())
   updateAt   DateTime @updatedAt
 

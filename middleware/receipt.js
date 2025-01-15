@@ -21,17 +21,21 @@ const upload = multer({
 
 exports.validateImage = (req, res, next) => {
     upload(req, res, function(err) {
+        console.log('Multer processing...');
+        console.log('Request headers:', req.headers)
         console.log('Request files:', req.files)
         console.log('Request file:', req.file)
         console.log('Request body:', req.body)
 
         if (err) {
+            console.log('Multer error details:', err);
             return res.status(400).json({
                 error: err.message
             })
         }
 
         if (!req.file) {
+            console.log('No file uploaded');
             return res.status(400).json({
                 error: 'กรุณาอัพโหลดรูปใบเสร็จ'
             })

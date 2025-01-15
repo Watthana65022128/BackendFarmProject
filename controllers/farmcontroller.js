@@ -55,7 +55,7 @@ exports.createFarm = async (req, res) => {
 
 exports.getFarms = async (req, res) => {
     try {
-        const userId = req.userId; // ตรวจสอบว่ามี userId จาก JWT token
+        const userId = req.userId;
 
         if (!userId) {
             return res.status(401).json({ message: 'ไม่พบข้อมูลผู้ใช้' });
@@ -63,8 +63,16 @@ exports.getFarms = async (req, res) => {
 
         const farms = await prisma.farm.findMany({
             where: {
-                userId: userId // กรองเฉพาะไร่ของผู้ใช้ที่ล็อกอินอยู่
+                userId: userId
             },
+            select: {
+                id: true,
+                name: true,
+                startMonth: true,
+                endMonth: true,
+                budget: true, 
+                createAt: true
+            }
         });
 
         res.json(farms);
@@ -123,6 +131,51 @@ exports.removeFarm = async (req, res) => {
         return res.status(500).json({
             error: 'Server Error',
             message: error.message
+        });
+    }
+};
+
+exports.updateBudget = async (req, res) => {
+    try {
+        const { farmId, budget } = req.body;
+        const userId = req.userId;
+
+        if (!farmId || !budget) {
+            return res.status(400).json({ message: 'กรุณาระบุข้อมูลให้ครบถ้วน' });
+        }
+
+        // ตรวจสอบว่าไร่นี้เป็นของผู้ใช้หรือไม่
+        const farm = await prisma.farm.findFirst({
+            where: {
+                id: parseInt(farmId),
+                userId: parseInt(userId)
+            }
+        });
+
+        if (!farm) {
+            return res.status(404).json({ message: 'ไม่พบข้อมูลไร่' });
+        }
+
+        // อัพเดทงบประมาณ
+        const updatedFarm = await prisma.farm.update({
+            where: {
+                id: parseInt(farmId)
+            },
+            data: {
+                budget: parseFloat(budget)
+            }
+        });
+
+        res.status(200).json({
+            message: 'อัพเดทงบประมาณสำเร็จ',
+            data: updatedFarm
+        });
+
+    } catch (error) {
+        console.error('Error updating budget:', error);
+        res.status(500).json({ 
+            message: 'เกิดข้อผิดพลาดที่เซิร์ฟเวอร์',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }
 };
