@@ -115,7 +115,6 @@ exports.createReceipt = async function(req, res) {
             }
         }
 
-        // บันทึกลงฐานข้อมูล
         const receipt = await prisma.receipt.create({
             data: {
                 userId: parseInt(userId),
@@ -205,3 +204,69 @@ exports.deleteReceipt = async function(req, res) {
         })
     }
 }
+
+exports.getReceipts = async (req, res) => {
+    try {
+        const { farmId, startDate, endDate } = req.query;
+        const userId = req.userId;
+
+        // ตรวจสอบว่าฟาร์มเป็นของผู้ใช้นี้
+        const farm = await prisma.farm.findFirst({
+            where: {
+                id: parseInt(farmId),
+                userId: parseInt(userId)
+            }
+        });
+
+        if (!farm) {
+            return res.status(404).json({
+                error: 'ไม่พบข้อมูลฟาร์ม'
+            });
+        }
+
+        // ดึงข้อมูลใบเสร็จตามช่วงเวลา
+        const receipts = await prisma.receipt.findMany({
+            where: {
+                farmId: parseInt(farmId),
+                receiptDate: {
+                    gte: new Date(startDate),
+                    lte: new Date(endDate)
+                }
+            },
+            include: {
+                items: {
+                    include: {
+                        category: true
+                    }
+                }
+            },
+            orderBy: {
+                receiptDate: 'desc'
+            }
+        });
+
+        res.status(200).json({
+            message: 'ดึงข้อมูลใบเสร็จสำเร็จ',
+            receipts: receipts.map(receipt => ({
+                id: receipt.id,
+                shopName: receipt.shopName,
+                receiptDate: receipt.receiptDate,
+                totalAmount: receipt.totalAmount,
+                imageUrl: receipt.imageUrl,
+                items: receipt.items.map(item => ({
+                    id: item.id,
+                    description: item.description,
+                    amount: item.amount,
+                    categoryId: item.categoryId,
+                    category: item.category
+                }))
+            }))
+        });
+
+    } catch (error) {
+        console.error('Error getting receipts:', error);
+        res.status(500).json({
+            error: 'เกิดข้อผิดพลาดในการดึงข้อมูลใบเสร็จ'
+        });
+    }
+};
