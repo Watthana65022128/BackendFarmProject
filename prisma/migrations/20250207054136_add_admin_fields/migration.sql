@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE `users` ADD COLUMN `bannedAt` DATETIME(3) NULL,
+    ADD COLUMN `bannedReason` VARCHAR(191) NULL,
+    ADD COLUMN `isAdmin` BOOLEAN NOT NULL DEFAULT false,
+    ADD COLUMN `isBanned` BOOLEAN NOT NULL DEFAULT false;

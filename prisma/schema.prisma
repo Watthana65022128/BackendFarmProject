@@ -15,6 +15,10 @@ model User {
   password  String
   age       String
   address   String
+  isAdmin      Boolean   @default(false)  
+  isBanned     Boolean   @default(false)  
+  bannedReason String?                    
+  bannedAt     DateTime?                  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt()
 
